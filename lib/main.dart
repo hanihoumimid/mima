@@ -1,8 +1,6 @@
-import 'dart:io';
-
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'alarm_service.dart';
@@ -10,11 +8,23 @@ import 'database_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AndroidAlarmManager.initialize();
-  await AlarmService.init();
-  // Reschedule all active alarms on every cold start (handles post-boot recovery
-  // even without a dedicated BroadcastReceiver on older firmware).
-  await AlarmService.rescheduleAll();
+
+  final isAndroid =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  try {
+    if (isAndroid) {
+      await AndroidAlarmManager.initialize();
+    }
+    await AlarmService.init();
+    // Reschedule all active alarms on every cold start (handles post-boot
+    // recovery even without a dedicated BroadcastReceiver on older firmware).
+    await AlarmService.rescheduleAll();
+  } catch (e, stackTrace) {
+    debugPrint('Startup initialization error: $e');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+
   runApp(const MamieMedsApp());
 }
 
@@ -106,7 +116,9 @@ class _HomePageState extends State<HomePage>
   // --------------------------------------------------------------------------
 
   Future<void> _maybeRequestBatteryOptimisation() async {
-    if (!Platform.isAndroid) return;
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    if (!isAndroid) return;
     // Give the first frame a moment to settle before showing a dialog.
     await Future<void>.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;

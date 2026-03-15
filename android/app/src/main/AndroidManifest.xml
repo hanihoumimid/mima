@@ -34,7 +34,7 @@
          Application
          ============================================================ -->
     <application
-        android:label="Mamie-Meds"
+        android:label="Mima-Meds"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

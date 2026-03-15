@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -22,6 +25,8 @@ void alarmCallback(int id) async {
 /// Manages scheduling, firing and cancelling alarms for medication reminders.
 class AlarmService {
   static final _notifications = FlutterLocalNotificationsPlugin();
+  static bool get _isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   static const _channelId = 'mamie_meds_channel';
   static const _channelName = 'Rappels de médicaments';
@@ -30,29 +35,36 @@ class AlarmService {
 
   /// Initialise local notifications (safe to call multiple times).
   static Future<void> init() async {
+    if (!_isAndroid) return;
+
     const androidInit =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    await _notifications.initialize(
-      const InitializationSettings(android: androidInit),
-      onDidReceiveNotificationResponse: _onNotificationResponse,
-      onDidReceiveBackgroundNotificationResponse:
-          _onBackgroundNotificationResponse,
-    );
+    try {
+      await _notifications.initialize(
+        const InitializationSettings(android: androidInit),
+        onDidReceiveNotificationResponse: _onNotificationResponse,
+        onDidReceiveBackgroundNotificationResponse:
+            _onBackgroundNotificationResponse,
+      );
 
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            _channelId,
-            _channelName,
-            description: _channelDescription,
-            importance: Importance.max,
-            playSound: true,
-            enableVibration: true,
-          ),
-        );
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(
+            const AndroidNotificationChannel(
+              _channelId,
+              _channelName,
+              description: _channelDescription,
+              importance: Importance.max,
+              playSound: true,
+              enableVibration: true,
+            ),
+          );
+    } catch (e, stackTrace) {
+      debugPrint('AlarmService.init error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -157,7 +169,7 @@ class AlarmService {
 
   /// Schedules (or re-schedules) a one-shot exact alarm for [med].
   static Future<void> scheduleAlarm(Medication med) async {
-    if (med.id == null || !med.isActive) return;
+    if (!_isAndroid || med.id == null || !med.isActive) return;
     final next = calculateNextOccurrence(med.hour, med.minute);
     await AndroidAlarmManager.oneShotAt(
       next,
@@ -172,6 +184,7 @@ class AlarmService {
 
   /// Cancels both the pending alarm and any visible notification for [id].
   static Future<void> cancelAlarm(int id) async {
+    if (!_isAndroid) return;
     await AndroidAlarmManager.cancel(id);
     await _notifications.cancel(id);
   }
