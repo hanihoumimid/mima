@@ -35,6 +35,19 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Persistence
+  sqflite: ^2.3.3
+  path: ^1.9.1
+
+  # Alarm scheduling (Android)
+  android_alarm_manager_plus: ^4.0.1
+
+  # Full-screen intent notifications
+  flutter_local_notifications: ^17.2.4
+
+  # Battery optimisation permission
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
